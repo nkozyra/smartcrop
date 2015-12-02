@@ -15,6 +15,6 @@ Will take filename.jpg and produce reference information images and the final cr
 ![final image] [final]
 
 [org]: source/debate.jpg
-[edges]: doc/edges.png
+[edges]: doc/edges.jpg
 [blocks]: doc/blocks.png
-[final]: doc/cropped_debate.png
+[final]: doc/cropped_debate.jpg
