@@ -18,6 +18,7 @@ Will take filename.jpg and produce reference information images and the final cr
 ```
 python smartcrop.py -i "[filename.jpg]" -x 400 - y 300
 ```
+
 ![different] [final2]
 
 [org]: source/debate.jpg
