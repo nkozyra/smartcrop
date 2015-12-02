@@ -16,6 +16,10 @@ def detectEdges(image):
   edges = cv2.GaussianBlur(edges,(5,5),0)
   cv2.imwrite("fah.jpg",edges)
 
+def findUnique(image):
+  # blocks = 
+  print image[0]
+
 def main(argv):
   face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_alt.xml')
   eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
@@ -23,13 +27,13 @@ def main(argv):
   outputFile = ''
   width = 300
   height = 300
-  opts, args = getopt.getopt(argv,"hi:o:w:h:",["ifile=","ofile="])
+  opts, args = getopt.getopt(argv,"hi:o:w:ht:",["ifile=","ofile="])
   for opt, arg in opts:
     if opt == "-i":
       inputFile = arg
     if opt == "-o":
       outputFile = arg
-    if opt == "-h":
+    if opt == "-ht":
       height = arg
     if opt == "-w":
       width = arg
@@ -43,10 +47,22 @@ def main(argv):
       flags = cv2.cv.CV_HAAR_SCALE_IMAGE
   )
   detectEdges(img)
+  findUnique(img)
+  maxFaceX = 0
+  maxFaceCenter = 0
+  maxFaceRight = 0
   print "Found {0} faces!".format(len(faces))
+
+  # crop positioning
+  imHeight,imWidth = img.shape[:2]
+  cropBias = int(imWidth)
   for (x,y,w,h) in faces:
-    print "sup"
     cv2.rectangle(img,(x,y),(x+w,y+h),(25,0,255),2)
+    cropBias = cropBias - x
+    if (x+w) > maxFaceX:
+      maxFaceX = x + w
+      maxFaceCenter = (x+w) - (w/2)
+      maxFaceRight = (x+w)
     roi_gray = gray[y:y+h, x:x+w]
     roi_color = img[y:y+h, x:x+w]
     eyes = eye_cascade.detectMultiScale(roi_gray)
@@ -54,11 +70,17 @@ def main(argv):
       cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
 
 
-  # crop positioning
-  imHeight,imWidth = img.shape[:2]
-  print imWidth
-  middle = (int(imWidth) / 2) - (int(width) / 2)
-  cv2.rectangle(img, (20,20), (40,40), (0,255,0), 2)
+  cropBiasPerc = (cropBias * 1.0) / imWidth
+
+  middleX = (int(imWidth) / 2) - (int(width) / 2)
+  middleY = (int(imHeight) / 2) - (int(height) / 2)
+  if maxFaceX != 0:
+    middleX = maxFaceCenter - (int(width) / 2)
+    if len(faces) > 1:
+      middleX = int( middleX - (middleX * cropBiasPerc) )
+    if middleX + (int(width)/2) > maxFaceRight:
+      middleX = maxFaceRight - (int(width)/2)
+  cv2.rectangle(img, (middleX,middleY), (middleX+int(width),middleY+int(height)), (0,255,0), 2)
   cv2.imwrite(outputFile,img)
 
 if __name__ == "__main__":
