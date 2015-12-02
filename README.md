@@ -14,7 +14,7 @@ Will take filename.jpg and produce reference information images and the final cr
 ![blocks] [blocks]
 ![final image] [final]
 
-> Usable mage information changes depending on crop resolution
+> Usable image information changes depending on crop resolution
 ```
 python smartcrop.py -i "[filename.jpg]" -x 400 - y 300
 ```
