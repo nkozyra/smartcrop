@@ -1,24 +1,16 @@
 import numpy as np
-import cv2
-import sys
-import getopt
+import copy, cv2, getopt, math, sys
 from matplotlib import pyplot as plt
 
 
 def detectEdges(image):
-  edges = cv2.Canny(image,300,300)
-  # plt.subplot(121),plt.imshow(image,cmap = 'gray')
-  # plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-  # plt.subplot(122),plt.imshow(edges,cmap = 'gray')
-  # plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
-  # edgeMap = plt * 255
-  edges = cv2.GaussianBlur(edges,(5,5),0)
-  edges = cv2.GaussianBlur(edges,(5,5),0)
+  edges = cv2.Canny(image,100,100)
   image = edges
-  cv2.imwrite("fah.jpg",edges)
+  cv2.imwrite("edges.jpg",edges)
+  return edges
 
-def isolateUnique(image):
-  blocksize = 32
+def isolateUnique(image, edges):
+  blocksize = 64
   varianceThreshold = 95
   cellPx = image.shape[1] / blocksize
   rows = image.shape[0] / cellPx
@@ -40,8 +32,11 @@ def isolateUnique(image):
       r = 0
       g = 0
       b = 0
+      hasEdge = False
       for ii in range(rbeg,rend):
         for jj in range(cbeg,cend):
+          if edges[ii][jj] > 0:
+            hasEdge = True
           r = r + image[ii][jj][0]
           g = g + image[ii][jj][1]
           b = b + image[ii][jj][2]
@@ -52,12 +47,14 @@ def isolateUnique(image):
       rv = (r/blockPx)
       gv = (g/blockPx)
       bv = (b/blockPx)
-      cellValues[i][j] = [rv,gv,bv]
+      value = [rv,gv,bv] if hasEdge == True else [0,0,0]
+      cellValues[i][j] = value
       cv2.rectangle(image, (cbeg,rbeg), (cend,rend), (rv,gv,bv), -1)
   avgR = (imgR/imgCells)
   avgG = (imgG/imgCells)
   avgB = (imgB/imgCells)
   # cv2.rectangle(image, (100,100), (200,200), (avgR,avgG,avgB), -1)
+  cv2.rectangle(image, (0,0), (image.shape[1],image.shape[0]), (0,0,0), -1)
   for i in range(len(cellValues)):
     for j in range(len(cellValues[i])):
       rdiff = abs(cellValues[i][j][0] - avgR)
@@ -83,17 +80,28 @@ def main(argv):
   outputFile = ''
   width = 300
   height = 300
-  opts, args = getopt.getopt(argv,"hi:o:w:ht:",["ifile=","ofile="])
+  blocksize = 64
+  opts, args = getopt.getopt(argv,"hi:o:x:y:b:",["ifile=","ofile="])
   for opt, arg in opts:
+    print opt
     if opt == "-i":
       inputFile = arg
     if opt == "-o":
       outputFile = arg
-    if opt == "-ht":
+    if opt == "-y":
       height = arg
-    if opt == "-w":
+    if opt == "-x":
       width = arg
+    if opt == "-b":
+      blocksize = arg
+
+  if outputFile == "":
+    outputFile = inputFile
+  inputFile = "source/"+inputFile
+  orgHeight = height
+  orgWidth = width
   img = cv2.imread(inputFile)
+  original = copy.copy(img)
   gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
   faces = face_cascade.detectMultiScale(
       gray,
@@ -102,8 +110,8 @@ def main(argv):
       minSize=(30, 30),
       flags = cv2.cv.CV_HAAR_SCALE_IMAGE
   )
-  detectEdges(img)
-  isolateUnique(img)
+  edgeRef = detectEdges(img)
+  isolateUnique(img, edgeRef)
   maxFaceX = 0
   maxFaceCenter = 0
   maxFaceRight = 0
@@ -136,8 +144,55 @@ def main(argv):
       middleX = int( middleX - (middleX * cropBiasPerc) )
     if middleX + (int(width)/2) > maxFaceRight:
       middleX = maxFaceRight - (int(width)/2)
+
+  ratio = int(height) / ( img.shape[0] * 1.0 )
+  height = img.shape[0]
+
+  middleY = 0
+  newRatio = height*1.0 / int(orgHeight)
+  width = round( int(width) * newRatio )
+  width = int(width)
+
+  rawCols = math.ceil( img.shape[1]*1.0 / int(width) )
+  print rawCols
+  evaluateCols = int( rawCols)
+
+  mostPosIndex = 0
+  bestPosValue = 0
+  for i in range(evaluateCols):
+    positiveCount = 0
+    startx = i * int(width)
+    endx = startx + int(width)
+    endx = img.shape[1] if endx > img.shape[1] else endx
+    for col in range(startx,endx):
+      for row in range(img.shape[0]):
+        pxval = img[row][col][0] + img[row][col][1] + img[row][col][2]
+        if pxval > 0:
+          positiveCount = positiveCount+1
+    if positiveCount > bestPosValue:
+      mostPosIndex = i
+      bestPosValue = positiveCount
+    print i, positiveCount
+  print "Best Index: ", str(mostPosIndex)
+  middleX = ( mostPosIndex * int(width) )
+
+  if middleX + width > img.shape[1]:
+    middleX = img.shape[1] - width
+
   cv2.rectangle(img, (middleX,middleY), (middleX+int(width),middleY+int(height)), (0,255,0), 2)
-  cv2.imwrite(outputFile,img)
+  outputDest = "output/"+outputFile
+  print outputDest
+
+  cropped = copy.copy(original)
+  copyName = "output/ref_"+outputFile
+  croppedName = "output/cropped_"+outputFile
+  cropX1 = middleX+int(width)
+  cropY1 = middleY+int(height)
+  croppedData = original[middleY:cropY1, middleX:cropX1]
+  cv2.rectangle(original, (middleX,middleY), (middleX+int(width),middleY+int(height)), (0,255,0), 2)
+  cv2.imwrite(copyName, original)
+  cv2.imwrite(croppedName, croppedData)
+  cv2.imwrite(outputDest,img)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
