@@ -9,20 +9,14 @@ python smartcrop.py -i "[filename.jpg]" -x 300 - y 300
 
 Will take filename.jpg and produce reference information images and the final crop in /output
 
-![original] [org]
-![edges] [edges]
-![blocks] [blocks]
-![final image] [final]
+![original](https://raw.githubusercontent.com/nkozyra/smartcrop/master/source/debate.jpg)
+![edges](https://raw.githubusercontent.com/nkozyra/smartcrop/master/doc/edges.jpg)
+![blocks](https://raw.githubusercontent.com/nkozyra/smartcrop/master/doc/blocks.png)
+![final image](https://raw.githubusercontent.com/nkozyra/smartcrop/master/doc/cropped_debate.jpg)
 
 > Usable image information changes depending on crop resolution
 ```
 python smartcrop.py -i "[filename.jpg]" -x 400 - y 300
 ```
 
-![different] [final2]
-
-[org]: source/debate.jpg
-[edges]: doc/edges.jpg
-[blocks]: doc/blocks.png
-[final]: doc/cropped_debate.jpg
-[final2]: doc/cropped_debate2.jpg
+![different](https://raw.githubusercontent.com/nkozyra/smartcrop/master/doc/cropped_debate2.jpg)
